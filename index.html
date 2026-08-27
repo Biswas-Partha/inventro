@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,9 +11,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -87,20 +88,25 @@
                     </button>
                     <div class="profile-container" style="position: relative;">
                         <div class="user-profile" onclick="toggleProfile(event)" style="cursor: pointer;">
-                            <img src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff" alt="User">
+                            <img src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff"
+                                alt="User">
                             <span>Admin</span>
                         </div>
                         <div id="profile-dropdown" class="dropdown-menu" style="width: 220px;">
                             <div class="dropdown-header">
-                                <p style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-bottom: 2px;">Signed in as</p>
+                                <p
+                                    style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-bottom: 2px;">
+                                    Signed in as</p>
                                 <p style="margin: 0; font-weight: 600;">Admin User</p>
                             </div>
                             <ul class="dropdown-list">
                                 <li onclick="openModal('settings-modal')">
-                                    <i class="fa-solid fa-gear" style="width: 20px; color: var(--text-muted);"></i> System Settings
+                                    <i class="fa-solid fa-gear" style="width: 20px; color: var(--text-muted);"></i>
+                                    System Settings
                                 </li>
                                 <li onclick="openModal('profile-modal')">
-                                    <i class="fa-regular fa-user" style="width: 20px; color: var(--text-muted);"></i> Edit Profile
+                                    <i class="fa-regular fa-user" style="width: 20px; color: var(--text-muted);"></i>
+                                    Edit Profile
                                 </li>
                                 <li onclick="logout()" style="color: var(--danger);">
                                     <i class="fa-solid fa-arrow-right-from-bracket" style="width: 20px;"></i> Logout
@@ -113,7 +119,7 @@
 
             <!-- Views Container -->
             <div class="views-container">
-                
+
                 <!-- Dashboard View -->
                 <section id="view-dashboard" class="view active">
                     <div class="stats-grid">
@@ -153,16 +159,20 @@
                                 <p id="stat-total-value">0</p>
                                 <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
                                     <div style="flex: 1; position: relative;">
-                                        <input type="date" id="collect-start" class="form-control" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; border-radius: 6px; width: 100%;" onchange="calculateAmountCollected()" title="Start Date">
+                                        <input type="date" id="collect-start" class="form-control"
+                                            style="padding: 0.3rem 0.5rem; font-size: 0.75rem; border-radius: 6px; width: 100%;"
+                                            onchange="calculateAmountCollected()" title="Start Date">
                                     </div>
                                     <div style="flex: 1; position: relative;">
-                                        <input type="date" id="collect-end" class="form-control" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; border-radius: 6px; width: 100%;" onchange="calculateAmountCollected()" title="End Date">
+                                        <input type="date" id="collect-end" class="form-control"
+                                            style="padding: 0.3rem 0.5rem; font-size: 0.75rem; border-radius: 6px; width: 100%;"
+                                            onchange="calculateAmountCollected()" title="End Date">
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="card" style="margin-bottom: 1.5rem;">
                         <div class="card-header">
                             <h3>Stock Movement Trends</h3>
@@ -193,7 +203,7 @@
                                 </table>
                             </div>
                         </div>
-                        
+
                         <div class="card low-stock-alerts">
                             <div class="card-header">
                                 <h3>Low Stock Alerts</h3>
@@ -213,7 +223,8 @@
                         <div class="card-header flex-between">
                             <h3>Product Catalog</h3>
                             <div style="display: flex; gap: 1rem; align-items: center;">
-                                <input type="text" id="search-product" placeholder="Search products..." class="form-control" style="width: 200px;">
+                                <input type="text" id="search-product" placeholder="Search products..."
+                                    class="form-control" style="width: 200px;">
                                 <select id="filter-category" class="form-control" style="width: 150px;">
                                     <option value="">All Categories</option>
                                     <!-- Populated via JS -->
@@ -276,15 +287,18 @@
                 <!-- Purchase Orders View -->
                 <section id="view-po" class="view">
                     <div class="pos-container">
-                        
+
                         <!-- Left: Products -->
                         <div class="card" style="display: flex; flex-direction: column; height: 100%;">
                             <div class="card-header flex-between">
                                 <h3>Product Catalog</h3>
-                                <input type="text" id="po-search" class="form-control" placeholder="Search products..." oninput="renderPOProducts()" style="max-width: 300px;">
+                                <input type="text" id="po-search" class="form-control" placeholder="Search products..."
+                                    oninput="renderPOProducts()" style="max-width: 300px;">
                             </div>
-                            <div class="card-body" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--bg-main);">
-                                <div id="po-product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+                            <div class="card-body"
+                                style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--bg-main);">
+                                <div id="po-product-grid"
+                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
                                     <!-- Populated via JS -->
                                 </div>
                             </div>
@@ -293,13 +307,16 @@
                         <!-- Right: Cart -->
                         <div class="card" style="display: flex; flex-direction: column; height: 100%;">
                             <div class="card-header" style="background: var(--secondary); padding: 1rem 1.5rem;">
-                                <h3 style="color: white; margin: 0;"><i class="fa-solid fa-truck-ramp-box"></i> Supplier Intake</h3>
+                                <h3 style="color: white; margin: 0;"><i class="fa-solid fa-truck-ramp-box"></i> Supplier
+                                    Intake</h3>
                             </div>
                             <div class="card-body" style="flex: 1; overflow-y: auto; padding: 1rem;" id="po-cart-items">
                                 <!-- Cart Items Populated via JS -->
-                                <p class="text-center" style="color: var(--text-muted); margin-top: 2rem;">Order is empty</p>
+                                <p class="text-center" style="color: var(--text-muted); margin-top: 2rem;">Order is
+                                    empty</p>
                             </div>
-                            <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-card); border-radius: 0 0 var(--border-radius) var(--border-radius);">
+                            <div
+                                style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-card); border-radius: 0 0 var(--border-radius) var(--border-radius);">
                                 <div class="form-group" style="margin-bottom: 0.5rem;">
                                     <select id="po-supplier" class="form-control">
                                         <option value="">Select Supplier (Required)</option>
@@ -307,13 +324,16 @@
                                     </select>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 1rem;">
-                                    <input type="text" id="po-ref" class="form-control" placeholder="Invoice / Ref Number (Optional)">
+                                    <input type="text" id="po-ref" class="form-control"
+                                        placeholder="Invoice / Ref Number (Optional)">
                                 </div>
                                 <div class="flex-between" style="margin-bottom: 1.5rem; font-size: 1.25rem;">
                                     <strong>Total Cost</strong>
                                     <strong id="po-total" style="color: var(--secondary);">₹0.00</strong>
                                 </div>
-                                <button class="btn btn-secondary" style="width: 100%; padding: 1rem; font-size: 1.1rem; justify-content: center;" onclick="checkoutPO()">
+                                <button class="btn btn-secondary"
+                                    style="width: 100%; padding: 1rem; font-size: 1.1rem; justify-content: center;"
+                                    onclick="checkoutPO()">
                                     <i class="fa-solid fa-check"></i> Confirm Purchase Order
                                 </button>
                             </div>
@@ -329,7 +349,9 @@
                             <h3>Generate Report</h3>
                         </div>
                         <div class="card-body">
-                            <form id="form-reports" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;" onsubmit="generateReport(event)">
+                            <form id="form-reports"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;"
+                                onsubmit="generateReport(event)">
                                 <div class="form-group">
                                     <label>Report Type</label>
                                     <select id="report-type" class="form-control" required>
@@ -352,7 +374,7 @@
                             </form>
                         </div>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-header flex-between">
                             <h3 id="report-title">Report Results</h3>
@@ -369,12 +391,17 @@
                                         <!-- Dynamic headers -->
                                     </thead>
                                     <tbody id="report-table-body">
-                                        <tr><td colspan="5" class="text-center">Select parameters to generate report</td></tr>
+                                        <tr>
+                                            <td colspan="5" class="text-center">Select parameters to generate report
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <div id="report-summary" style="margin-top: 1rem; text-align: right; font-size: 1.2rem; display: none;">
-                                <strong>Total: </strong> <span id="report-grand-total" style="color: var(--primary);"></span>
+                            <div id="report-summary"
+                                style="margin-top: 1rem; text-align: right; font-size: 1.2rem; display: none;">
+                                <strong>Total: </strong> <span id="report-grand-total"
+                                    style="color: var(--primary);"></span>
                             </div>
                         </div>
                     </div>
@@ -383,15 +410,18 @@
                 <!-- POS View -->
                 <section id="view-pos" class="view">
                     <div class="pos-container">
-                        
+
                         <!-- Left: Products -->
                         <div class="card" style="display: flex; flex-direction: column; height: 100%;">
                             <div class="card-header flex-between">
                                 <h3>Product Catalog</h3>
-                                <input type="text" id="pos-search" class="form-control" placeholder="Search products..." oninput="renderPOSProducts()" style="max-width: 300px;">
+                                <input type="text" id="pos-search" class="form-control" placeholder="Search products..."
+                                    oninput="renderPOSProducts()" style="max-width: 300px;">
                             </div>
-                            <div class="card-body" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--bg-main);">
-                                <div id="pos-product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+                            <div class="card-body"
+                                style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--bg-main);">
+                                <div id="pos-product-grid"
+                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
                                     <!-- Populated via JS -->
                                 </div>
                             </div>
@@ -400,18 +430,24 @@
                         <!-- Right: Cart -->
                         <div class="card" style="display: flex; flex-direction: column; height: 100%;">
                             <div class="card-header" style="background: var(--primary); padding: 1rem 1.5rem;">
-                                <h3 style="color: white; margin: 0;"><i class="fa-solid fa-cart-shopping"></i> Current Sale</h3>
+                                <h3 style="color: white; margin: 0;"><i class="fa-solid fa-cart-shopping"></i> Current
+                                    Sale</h3>
                             </div>
-                            <div class="card-body" style="flex: 1; overflow-y: auto; padding: 1rem;" id="pos-cart-items">
+                            <div class="card-body" style="flex: 1; overflow-y: auto; padding: 1rem;"
+                                id="pos-cart-items">
                                 <!-- Cart Items Populated via JS -->
-                                <p class="text-center" style="color: var(--text-muted); margin-top: 2rem;">Cart is empty</p>
+                                <p class="text-center" style="color: var(--text-muted); margin-top: 2rem;">Cart is empty
+                                </p>
                             </div>
-                            <div style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-card); border-radius: 0 0 var(--border-radius) var(--border-radius);">
+                            <div
+                                style="padding: 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-card); border-radius: 0 0 var(--border-radius) var(--border-radius);">
                                 <div class="form-group" style="margin-bottom: 0.5rem;">
-                                    <input type="text" id="pos-customer-name" class="form-control" placeholder="Customer Name (Optional)">
+                                    <input type="text" id="pos-customer-name" class="form-control"
+                                        placeholder="Customer Name (Optional)">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 1rem;">
-                                    <input type="text" id="pos-customer-phone" class="form-control" placeholder="Mobile Number (Optional)">
+                                    <input type="text" id="pos-customer-phone" class="form-control"
+                                        placeholder="Mobile Number (Optional)">
                                 </div>
                                 <div class="flex-between" style="margin-bottom: 0.5rem;">
                                     <span style="color: var(--text-muted);">Subtotal</span>
@@ -425,7 +461,9 @@
                                     <strong>Total</strong>
                                     <strong id="pos-total" style="color: var(--primary);">₹0.00</strong>
                                 </div>
-                                <button class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; justify-content: center;" onclick="checkoutPOS()">
+                                <button class="btn btn-primary"
+                                    style="width: 100%; padding: 1rem; font-size: 1.1rem; justify-content: center;"
+                                    onclick="checkoutPOS()">
                                     <i class="fa-solid fa-cash-register"></i> Complete Sale
                                 </button>
                             </div>
@@ -483,7 +521,8 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Reference / Reason</label>
-                                        <input type="text" required id="stock-in-ref" class="form-control" placeholder="e.g. PO-12345">
+                                        <input type="text" required id="stock-in-ref" class="form-control"
+                                            placeholder="e.g. PO-12345">
                                     </div>
                                     <button type="submit" class="btn btn-success w-100">Record Stock In</button>
                                 </form>
@@ -505,13 +544,16 @@
                                     <div class="form-group">
                                         <label style="display: flex; justify-content: space-between;">
                                             Quantity
-                                            <span id="stock-out-qty-error" style="color: var(--danger); font-size: 0.8rem; display: none;"></span>
+                                            <span id="stock-out-qty-error"
+                                                style="color: var(--danger); font-size: 0.8rem; display: none;"></span>
                                         </label>
-                                        <input type="number" min="1" required id="stock-out-qty" class="form-control" oninput="document.getElementById('stock-out-qty-error').style.display='none'; this.style.borderColor=''">
+                                        <input type="number" min="1" required id="stock-out-qty" class="form-control"
+                                            oninput="document.getElementById('stock-out-qty-error').style.display='none'; this.style.borderColor=''">
                                     </div>
                                     <div class="form-group">
                                         <label>Reference / Reason</label>
-                                        <input type="text" required id="stock-out-ref" class="form-control" placeholder="e.g. Sale INV-999">
+                                        <input type="text" required id="stock-out-ref" class="form-control"
+                                            placeholder="e.g. Sale INV-999">
                                     </div>
                                     <button type="submit" class="btn btn-danger w-100">Record Stock Out</button>
                                 </form>
@@ -570,7 +612,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('product-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Product</button>
                     </div>
                 </form>
@@ -597,7 +640,8 @@
                         <textarea id="category-desc" class="form-control" rows="3"></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('category-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Category</button>
                     </div>
                 </form>
@@ -632,7 +676,8 @@
                         <textarea id="supplier-address" class="form-control" rows="2"></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('supplier-modal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('supplier-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Supplier</button>
                     </div>
                 </form>
@@ -690,10 +735,14 @@
                     </div>
                     <div class="invoice-summary">
                         <div style="text-align: right;">
-                            <p style="margin-bottom: 5px; font-size: 1.1rem;"><strong>Subtotal:</strong> <span id="inv-subtotal" style="display:inline-block; width: 120px;">₹0.00</span></p>
-                            <p style="margin-bottom: 10px; font-size: 1.1rem; color: #64748b;"><strong>GST (18%):</strong> <span id="inv-gst" style="display:inline-block; width: 120px;">₹0.00</span></p>
+                            <p style="margin-bottom: 5px; font-size: 1.1rem;"><strong>Subtotal:</strong> <span
+                                    id="inv-subtotal" style="display:inline-block; width: 120px;">₹0.00</span></p>
+                            <p style="margin-bottom: 10px; font-size: 1.1rem; color: #64748b;"><strong>GST
+                                    (18%):</strong> <span id="inv-gst"
+                                    style="display:inline-block; width: 120px;">₹0.00</span></p>
                             <div class="invoice-total" style="margin-top: 10px;">
-                                <strong>Grand Total:</strong> <span id="inv-grand-total" style="display:inline-block; width: 120px;">₹0.00</span>
+                                <strong>Grand Total:</strong> <span id="inv-grand-total"
+                                    style="display:inline-block; width: 120px;">₹0.00</span>
                             </div>
                         </div>
                     </div>
@@ -736,7 +785,8 @@
                         <input type="text" id="setting-currency" class="form-control" value="₹" required>
                     </div>
                     <div class="modal-footer" style="margin-top: 1.5rem;">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('settings-modal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('settings-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Settings</button>
                     </div>
                 </form>
@@ -759,10 +809,12 @@
                     </div>
                     <div class="form-group">
                         <label>Avatar Color (Hex)</label>
-                        <input type="color" id="profile-color" class="form-control" value="#6366f1" style="height: 50px; padding: 0.2rem;">
+                        <input type="color" id="profile-color" class="form-control" value="#6366f1"
+                            style="height: 50px; padding: 0.2rem;">
                     </div>
                     <div class="modal-footer" style="margin-top: 1.5rem;">
-                        <button type="button" class="btn btn-secondary" onclick="closeModal('profile-modal')">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('profile-modal')">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Profile</button>
                     </div>
                 </form>
@@ -778,8 +830,10 @@
                     <i class="fa-solid fa-circle-check"></i>
                 </div>
                 <h3 id="success-modal-title" style="margin-bottom: 1rem; font-size: 1.5rem;">Success</h3>
-                <p id="success-modal-message" style="margin-bottom: 2rem; color: var(--text-muted); font-size: 1.1rem;"></p>
-                <button type="button" class="btn btn-primary" onclick="closeModal('success-modal')" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 1.1rem;">OK</button>
+                <p id="success-modal-message" style="margin-bottom: 2rem; color: var(--text-muted); font-size: 1.1rem;">
+                </p>
+                <button type="button" class="btn btn-primary" onclick="closeModal('success-modal')"
+                    style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 1.1rem;">OK</button>
             </div>
         </div>
     </div>
@@ -792,10 +846,13 @@
                     <i class="fa-solid fa-circle-exclamation"></i>
                 </div>
                 <h3 id="confirm-modal-title" style="margin-bottom: 1rem; font-size: 1.5rem;">Confirm Action</h3>
-                <p id="confirm-modal-message" style="margin-bottom: 2rem; color: var(--text-muted); font-size: 1.1rem;">Are you sure you want to proceed?</p>
+                <p id="confirm-modal-message" style="margin-bottom: 2rem; color: var(--text-muted); font-size: 1.1rem;">
+                    Are you sure you want to proceed?</p>
                 <div style="display: flex; gap: 1rem;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('confirm-modal')" style="flex: 1; justify-content: center; padding: 0.75rem; font-size: 1.1rem;">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirm-modal-btn" style="flex: 1; justify-content: center; padding: 0.75rem; font-size: 1.1rem;">Confirm</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('confirm-modal')"
+                        style="flex: 1; justify-content: center; padding: 0.75rem; font-size: 1.1rem;">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-modal-btn"
+                        style="flex: 1; justify-content: center; padding: 0.75rem; font-size: 1.1rem;">Confirm</button>
                 </div>
             </div>
         </div>
@@ -806,4 +863,5 @@
 
     <script src="js/app.js?v=4"></script>
 </body>
+
 </html>
