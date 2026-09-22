@@ -303,13 +303,16 @@ body.dark-theme .bg-info-light { background-color: rgba(59, 130, 246, 0.2); }
 .stat-card {
     background-color: var(--bg-card);
     border-radius: var(--border-radius);
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
     gap: 1.25rem;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
     transition: transform 0.2s, box-shadow 0.2s;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 .stat-card:hover {
     transform: translateY(-2px);
@@ -318,22 +321,97 @@ body.dark-theme .bg-info-light { background-color: rgba(59, 130, 246, 0.2); }
 .stat-icon {
     width: 54px;
     height: 54px;
+    min-width: 54px;
+    min-height: 54px;
+    max-width: 54px;
+    max-height: 54px;
+    flex-shrink: 0;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
 }
+.stat-details {
+    min-width: 0;
+    flex: 1;
+}
 .stat-details h3 {
     font-size: 0.85rem;
     color: var(--text-muted);
     font-weight: 500;
     margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .stat-details p {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-main);
+    line-height: 1.2;
+}
+
+/* Amount Collected Card with Date Filters */
+.stat-card-amount {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+}
+.stat-card-amount .stat-card-main {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 0;
+    width: 100%;
+}
+.stat-date-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border-color);
+    width: 100%;
+    box-sizing: border-box;
+}
+.stat-date-filters .date-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+}
+.stat-date-filters .date-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    width: 38px;
+    flex-shrink: 0;
+}
+.stat-date-input {
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.32rem 0.5rem;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    cursor: pointer;
+}
+.stat-date-input:hover {
+    border-color: var(--text-muted);
+}
+.stat-date-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
 }
 .dashboard-grid {
     display: grid;
