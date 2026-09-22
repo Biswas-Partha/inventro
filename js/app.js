@@ -229,6 +229,11 @@ function renderDashboard() {
     const lowStockItems = products.filter(p => parseInt(p.stock) <= parseInt(p.min_stock));
     const statLowStock = document.getElementById('stat-low-stock');
     if (statLowStock) statLowStock.textContent = lowStockItems.length;
+
+    // Pending Deliveries Stat
+    const pendingDeliveries = deliveryOrders.filter(o => o.status === 'pending');
+    const statPending = document.getElementById('stat-pending-deliveries');
+    if (statPending) statPending.textContent = pendingDeliveries.length;
     
     // Update Notifications Dropdown
     const notifBadge = document.getElementById('low-stock-badge');
@@ -1805,21 +1810,38 @@ function escapeHtml(str) {
 }
 
 // --- Transport & Delivery Orders ---
+function navigateToTransport(filter = 'all') {
+    setDeliveryStatusFilter(filter);
+    const navItem = document.querySelector('.sidebar-nav .nav-item[data-target="transport"]');
+    if (navItem) {
+        navItem.click();
+        setTimeout(() => {
+            setDeliveryStatusFilter(filter);
+        }, 50);
+    }
+}
+
 function setDeliveryStatusFilter(status) {
     deliveryStatusFilter = status;
+    syncDeliveryFilterTabsUI();
+    renderDeliveryOrders();
+}
+
+function syncDeliveryFilterTabsUI() {
     const buttons = document.querySelectorAll('#delivery-status-filters .filter-tab');
     buttons.forEach(btn => {
-        if (btn.getAttribute('data-filter') === status) {
+        if (btn.getAttribute('data-filter') === deliveryStatusFilter) {
             btn.classList.add('active');
         } else {
             btn.classList.remove('active');
         }
     });
-    renderDeliveryOrders();
 }
 
 function renderDeliveryOrders() {
     if (currentView !== 'transport') return;
+
+    syncDeliveryFilterTabsUI();
 
     const tbody = document.getElementById('delivery-orders-table-body');
     if (!tbody) return;
@@ -1903,6 +1925,22 @@ function renderDeliveryOrders() {
         // Date
         const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
 
+        // Next status transition button
+        let statusTransitionBtn = '';
+        if (o.status === 'pending') {
+            statusTransitionBtn = `
+                <button class="btn btn-sm btn-primary" onclick="advanceDeliveryOrderStatus(${o.id}, event)" title="Advance to Dispatched" style="margin-right: 0.35rem; padding: 0.3rem 0.65rem; font-size: 0.78rem;">
+                    <i class="fa-solid fa-paper-plane"></i> Mark Dispatched
+                </button>
+            `;
+        } else if (o.status === 'dispatched') {
+            statusTransitionBtn = `
+                <button class="btn btn-sm btn-success" onclick="advanceDeliveryOrderStatus(${o.id}, event)" title="Advance to Delivered" style="margin-right: 0.35rem; padding: 0.3rem 0.65rem; font-size: 0.78rem;">
+                    <i class="fa-solid fa-circle-check"></i> Mark Delivered
+                </button>
+            `;
+        }
+
         tr.innerHTML = `
             <td><strong style="color: var(--primary);">#DO-${o.id}</strong></td>
             <td>
@@ -1915,6 +1953,7 @@ function renderDeliveryOrders() {
             <td>${statusBadge}</td>
             <td><small style="color: var(--text-muted);">${dateStr}</small></td>
             <td style="text-align: right; white-space: nowrap;">
+                ${statusTransitionBtn}
                 <button class="btn-icon" onclick="viewDeliveryOrderSummary(${o.id})" title="View Details">
                     <i class="fa-solid fa-eye"></i>
                 </button>
@@ -2220,7 +2259,80 @@ async function viewDeliveryOrderSummary(orderId) {
     `;
 
     document.getElementById('dos-content').innerHTML = content;
+
+    const actionContainer = document.getElementById('dos-action-container');
+    if (actionContainer) {
+        if (order.status === 'pending') {
+            actionContainer.innerHTML = `
+                <button type="button" class="btn btn-primary" onclick="advanceDeliveryOrderStatus(${order.id}, event)">
+                    <i class="fa-solid fa-paper-plane"></i> Mark Dispatched
+                </button>
+            `;
+        } else if (order.status === 'dispatched') {
+            actionContainer.innerHTML = `
+                <button type="button" class="btn btn-success" onclick="advanceDeliveryOrderStatus(${order.id}, event)">
+                    <i class="fa-solid fa-circle-check"></i> Mark Delivered
+                </button>
+            `;
+        } else {
+            actionContainer.innerHTML = '';
+        }
+    }
+
     openModal('delivery-summary-modal');
+}
+
+function updateDeliverySummaryModal(order) {
+    if (!order) return;
+    const isModalOpen = document.getElementById('delivery-summary-modal')?.classList.contains('active');
+    if (isModalOpen) {
+        viewDeliveryOrderSummary(order.id);
+    }
+}
+
+async function advanceDeliveryOrderStatus(orderId, event) {
+    if (event) event.stopPropagation();
+
+    const order = deliveryOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    if (order.status === 'delivered') {
+        showToast('Order is already delivered and cannot be advanced further.', 'warning');
+        return;
+    }
+
+    const nextStatus = order.status === 'pending' ? 'dispatched' : 'delivered';
+
+    // Confirmation prompt before marking Delivered (irreversible step)
+    if (nextStatus === 'delivered') {
+        const confirmed = confirm(`Are you sure you want to mark Order #DO-${orderId} as Delivered?\nThis action cannot be undone.`);
+        if (!confirmed) return;
+    }
+
+    // Save previous status for rollback if API call fails
+    const previousStatus = order.status;
+
+    // Optimistic UI update: immediate status badge and button update in UI
+    order.status = nextStatus;
+    renderDeliveryOrders();
+    updateDeliverySummaryModal(order);
+
+    try {
+        const updated = await apiCall(`delivery-orders/${orderId}/advance-status`, 'PATCH');
+        const idx = deliveryOrders.findIndex(o => o.id == orderId);
+        if (idx !== -1 && updated) {
+            deliveryOrders[idx] = updated;
+        }
+        renderDeliveryOrders();
+        updateDeliverySummaryModal(deliveryOrders[idx] || updated);
+        showToast(`Order #DO-${orderId} marked as ${nextStatus}!`, 'success');
+    } catch (err) {
+        // If API fails, revert the status badge and show error toast
+        order.status = previousStatus;
+        renderDeliveryOrders();
+        updateDeliverySummaryModal(order);
+        showToast(err.message || 'Failed to advance order status.', 'danger');
+    }
 }
 
 async function deleteDeliveryOrder(orderId) {
@@ -2235,4 +2347,5 @@ async function deleteDeliveryOrder(orderId) {
         }
     }
 }
+
 

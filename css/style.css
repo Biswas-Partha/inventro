@@ -72,10 +72,13 @@ ul { list-style: none; }
 .text-success { color: var(--success); }
 .text-danger { color: var(--danger); }
 .text-warning { color: var(--warning); }
+.text-info { color: var(--info); }
 .bg-primary-light { background-color: var(--primary-light); }
 .bg-success-light { background-color: var(--success-light); }
 .bg-danger-light { background-color: var(--danger-light); }
 .bg-warning-light { background-color: var(--warning-light); }
+.bg-info-light { background-color: #dbeafe; }
+body.dark-theme .bg-info-light { background-color: rgba(59, 130, 246, 0.2); }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .w-100 { width: 100%; }
 
