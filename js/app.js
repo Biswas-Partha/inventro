@@ -1,8 +1,11 @@
 // Global Data State
 let categories = [];
 let suppliers = [];
+let customers = [];
 let products = [];
 let stockMovements = [];
+let deliveryOrders = [];
+let deliveryStatusFilter = 'all';
 let stockChartInstance = null;
 
 // API Base URL
@@ -26,17 +29,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- API Calls ---
 async function fetchData() {
     try {
-        const [catRes, supRes, prodRes, moveRes] = await Promise.all([
+        const [catRes, supRes, prodRes, moveRes, custRes, doRes] = await Promise.all([
             fetch(`${API_URL}/categories`),
             fetch(`${API_URL}/suppliers`),
             fetch(`${API_URL}/products`),
-            fetch(`${API_URL}/stock-movements`)
+            fetch(`${API_URL}/stock-movements`),
+            fetch(`${API_URL}/customers`),
+            fetch(`${API_URL}/delivery-orders`)
         ]);
         
         categories = await catRes.json();
         suppliers = await supRes.json();
         products = await prodRes.json();
         stockMovements = await moveRes.json();
+        customers = await custRes.json();
+        deliveryOrders = await doRes.json();
     } catch (err) {
         showToast('Error loading data from server.', 'danger');
         console.error(err);
@@ -163,6 +170,8 @@ function initNavigation() {
                     'products': 'Product Catalog',
                     'categories': 'Categories',
                     'suppliers': 'Suppliers List',
+                    'customers': 'Customers',
+                    'transport': 'Delivery Orders',
                     'stock-management': 'Stock Management',
                     'pos': 'Point of Sale',
                     'po': 'Purchase Orders',
@@ -202,6 +211,8 @@ function renderAll() {
     renderProducts();
     renderCategories();
     renderSuppliers();
+    renderCustomers();
+    renderDeliveryOrders();
     populateSelectDropdowns();
     checkLowStockAlerts();
 }
@@ -532,11 +543,22 @@ function closeModal(modalId) {
     const formMap = {
         'product-modal': 'form-product',
         'category-modal': 'form-category',
-        'supplier-modal': 'form-supplier'
+        'supplier-modal': 'form-supplier',
+        'customer-modal': 'form-customer',
+        'address-modal':  'form-address',
+        'delivery-order-modal': 'form-delivery-order'
     };
     if (formMap[modalId]) {
         document.getElementById(formMap[modalId]).reset();
-        document.getElementById(formMap[modalId]).querySelector('input[type="hidden"]').value = '';
+        const hidden = document.getElementById(formMap[modalId]).querySelector('input[type="hidden"]');
+        if (hidden) hidden.value = '';
+    }
+    if (modalId === 'delivery-order-modal') {
+        const addrSelect = document.getElementById('do-address');
+        if (addrSelect) addrSelect.innerHTML = '<option value="">Select Customer first...</option>';
+        const hint = document.getElementById('do-no-address-hint');
+        if (hint) hint.style.display = 'none';
+        toggleTransportMethod('own_rider');
     }
 }
 
@@ -727,6 +749,258 @@ async function deleteSupplier(id) {
             renderAll();
         } catch (error) {
             showToast('Error deleting supplier', 'danger');
+        }
+    }
+}
+
+// --- Customers ---
+function renderCustomers() {
+    if (currentView !== 'customers') return;
+
+    const tbody = document.getElementById('customers-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const searchTerm = (document.getElementById('search-customer')?.value || '').toLowerCase();
+
+    const filtered = customers.filter(c =>
+        c.name.toLowerCase().includes(searchTerm) ||
+        (c.phone || '').toLowerCase().includes(searchTerm) ||
+        (c.email || '').toLowerCase().includes(searchTerm) ||
+        (c.city || '').toLowerCase().includes(searchTerm)
+    );
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="color:var(--text-muted); padding: 2rem;">No customers found. <a href="#" onclick="openAddCustomer(); return false;">Add one now.</a></td></tr>`;
+        return;
+    }
+
+    filtered.forEach(c => {
+        // Main customer row
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.setAttribute('data-customer-id', c.id);
+        tr.innerHTML = `
+            <td style="padding: 0.5rem; text-align:center;">
+                <button class="btn-icon" onclick="toggleAddressDrawer(${c.id}, event)" title="View Addresses" id="addr-toggle-${c.id}">
+                    <i class="fa-solid fa-chevron-right" style="font-size:0.75rem; transition: transform 0.2s;"></i>
+                </button>
+            </td>
+            <td><strong>${c.name}</strong></td>
+            <td>${c.phone}</td>
+            <td>${c.email || '-'}</td>
+            <td>${c.city || '-'}</td>
+            <td>
+                <button class="btn-icon" onclick="editCustomer(${c.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon delete" onclick="deleteCustomer(${c.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+
+        // Hidden address drawer row
+        const drawerTr = document.createElement('tr');
+        drawerTr.id = `addr-drawer-${c.id}`;
+        drawerTr.style.display = 'none';
+        drawerTr.innerHTML = `
+            <td colspan="6" style="padding: 0; background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+                <div style="padding: 1rem 2rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                        <strong style="color:var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-location-dot"></i> Delivery Addresses</strong>
+                        <button class="btn btn-sm btn-primary" onclick="openAddAddress(${c.id})">
+                            <i class="fa-solid fa-plus"></i> Add Address
+                        </button>
+                    </div>
+                    <div id="addr-list-${c.id}"><em style="color:var(--text-muted);">Loading...</em></div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(drawerTr);
+    });
+}
+
+async function toggleAddressDrawer(customerId, event) {
+    if (event) event.stopPropagation();
+    const drawer = document.getElementById(`addr-drawer-${customerId}`);
+    const icon = document.querySelector(`#addr-toggle-${customerId} i`);
+    if (!drawer) return;
+
+    const isOpen = drawer.style.display !== 'none';
+    drawer.style.display = isOpen ? 'none' : 'table-row';
+    if (icon) icon.style.transform = isOpen ? '' : 'rotate(90deg)';
+
+    if (!isOpen) {
+        await renderAddressDrawer(customerId);
+    }
+}
+
+async function renderAddressDrawer(customerId) {
+    const container = document.getElementById(`addr-list-${customerId}`);
+    if (!container) return;
+    container.innerHTML = '<em style="color:var(--text-muted);">Loading...</em>';
+
+    try {
+        const res = await fetch(`${API_URL}/customer-addresses?customer_id=${customerId}`);
+        const addresses = await res.json();
+
+        if (!addresses.length) {
+            container.innerHTML = `<p style="color:var(--text-muted); margin:0;">No addresses yet. <a href="#" onclick="openAddAddress(${customerId}); return false;">Add one now.</a></p>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        addresses.forEach(addr => {
+            const card = document.createElement('div');
+            card.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.75rem; margin-bottom:0.5rem; border-radius:8px; background:var(--bg-card); border:1px solid var(--border-color);';
+            card.innerHTML = `
+                <div>
+                    <span style="font-weight:600; margin-right:0.5rem;">${addr.label}</span>
+                    ${addr.is_default ? '<span style="background:var(--primary); color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:20px;">Default</span>' : ''}
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">${addr.street}, ${addr.city}</div>
+                </div>
+                <div style="display:flex; gap:0.4rem; flex-shrink:0;">
+                    ${!addr.is_default ? `<button class="btn btn-sm btn-secondary" onclick="setDefaultAddress(${addr.id}, ${customerId})" title="Set as Default"><i class="fa-solid fa-star"></i></button>` : ''}
+                    <button class="btn-icon" onclick="editAddress(${addr.id}, ${customerId})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-icon delete" onclick="deleteAddress(${addr.id}, ${customerId})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        container.innerHTML = '<em style="color:var(--danger);">Failed to load addresses.</em>';
+    }
+}
+
+function openAddAddress(customerId) {
+    document.getElementById('address-modal-title').textContent = 'Add Delivery Address';
+    document.getElementById('form-address').reset();
+    document.getElementById('address-id').value = '';
+    document.getElementById('address-customer-id').value = customerId;
+    document.getElementById('address-is-default').checked = false;
+    openModal('address-modal');
+}
+
+async function editAddress(addressId, customerId) {
+    try {
+        const res = await fetch(`${API_URL}/customer-addresses/${addressId}`);
+        const addr = await res.json();
+        document.getElementById('address-id').value = addr.id;
+        document.getElementById('address-customer-id').value = customerId;
+        document.getElementById('address-label').value = addr.label;
+        document.getElementById('address-street').value = addr.street;
+        document.getElementById('address-city').value = addr.city;
+        document.getElementById('address-is-default').checked = !!addr.is_default;
+        document.getElementById('address-modal-title').textContent = 'Edit Delivery Address';
+        openModal('address-modal');
+    } catch (err) {
+        showToast('Could not load address.', 'danger');
+    }
+}
+
+async function saveAddress(e) {
+    e.preventDefault();
+    const id = document.getElementById('address-id').value;
+    const customerId = document.getElementById('address-customer-id').value;
+    const data = {
+        customer_id: parseInt(customerId),
+        label:       document.getElementById('address-label').value,
+        street:      document.getElementById('address-street').value,
+        city:        document.getElementById('address-city').value,
+        is_default:  document.getElementById('address-is-default').checked,
+    };
+
+    try {
+        if (id) {
+            await apiCall(`customer-addresses/${id}`, 'PUT', data);
+            showToast('Address updated!', 'success');
+        } else {
+            await apiCall('customer-addresses', 'POST', data);
+            showToast('Address added!', 'success');
+        }
+        closeModal('address-modal');
+        await renderAddressDrawer(customerId);
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
+async function deleteAddress(addressId, customerId) {
+    if (confirm('Delete this address?')) {
+        try {
+            await apiCall(`customer-addresses/${addressId}`, 'DELETE');
+            showToast('Address deleted.', 'success');
+            await renderAddressDrawer(customerId);
+        } catch (err) {
+            showToast('Error deleting address.', 'danger');
+        }
+    }
+}
+
+async function setDefaultAddress(addressId, customerId) {
+    try {
+        await apiCall(`customer-addresses/${addressId}`, 'PUT', { is_default: true });
+        showToast('Default address set!', 'success');
+        await renderAddressDrawer(customerId);
+    } catch (err) {
+        showToast('Error setting default.', 'danger');
+    }
+}
+
+function openAddCustomer() {
+    document.getElementById('customer-modal-title').textContent = 'Add Customer';
+    document.getElementById('form-customer').reset();
+    document.getElementById('customer-id').value = '';
+    openModal('customer-modal');
+}
+
+async function saveCustomer(e) {
+    e.preventDefault();
+    const id = document.getElementById('customer-id').value;
+    const data = {
+        name:    document.getElementById('customer-name').value,
+        phone:   document.getElementById('customer-phone').value,
+        email:   document.getElementById('customer-email').value,
+        city:    document.getElementById('customer-city').value,
+        address: document.getElementById('customer-address').value
+    };
+
+    try {
+        if (id) {
+            await apiCall(`customers/${id}`, 'PUT', data);
+            showToast('Customer updated!', 'success');
+        } else {
+            await apiCall('customers', 'POST', data);
+            showToast('Customer added!', 'success');
+        }
+        closeModal('customer-modal');
+        await fetchData();
+        renderAll();
+    } catch (error) {
+        showToast(error.message, 'danger');
+    }
+}
+
+function editCustomer(id) {
+    const c = customers.find(cust => cust.id == id);
+    if (!c) return;
+    document.getElementById('customer-id').value = c.id;
+    document.getElementById('customer-name').value = c.name;
+    document.getElementById('customer-phone').value = c.phone;
+    document.getElementById('customer-email').value = c.email || '';
+    document.getElementById('customer-city').value = c.city || '';
+    document.getElementById('customer-address').value = c.address || '';
+    document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+    openModal('customer-modal');
+}
+
+async function deleteCustomer(id) {
+    if (confirm('Delete this customer? This cannot be undone.')) {
+        try {
+            await apiCall(`customers/${id}`, 'DELETE');
+            showToast('Customer deleted.', 'success');
+            await fetchData();
+            renderAll();
+        } catch (error) {
+            showToast('Error deleting customer.', 'danger');
         }
     }
 }
@@ -1518,3 +1792,447 @@ function exportReportCSV() {
     a.click();
     document.body.removeChild(a);
 }
+
+// --- Helper Functions ---
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// --- Transport & Delivery Orders ---
+function setDeliveryStatusFilter(status) {
+    deliveryStatusFilter = status;
+    const buttons = document.querySelectorAll('#delivery-status-filters .filter-tab');
+    buttons.forEach(btn => {
+        if (btn.getAttribute('data-filter') === status) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    renderDeliveryOrders();
+}
+
+function renderDeliveryOrders() {
+    if (currentView !== 'transport') return;
+
+    const tbody = document.getElementById('delivery-orders-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const searchTerm = (document.getElementById('search-delivery-order')?.value || '').toLowerCase().trim();
+
+    let filtered = [...deliveryOrders];
+
+    // Status filter
+    if (deliveryStatusFilter !== 'all') {
+        filtered = filtered.filter(o => o.status === deliveryStatusFilter);
+    }
+
+    // Search filter
+    if (searchTerm) {
+        filtered = filtered.filter(o => {
+            const idStr = `#do-${o.id} ${o.id}`.toLowerCase();
+            const custName = (o.customer?.name || '').toLowerCase();
+            const custPhone = (o.customer?.phone || '').toLowerCase();
+            const courier = (o.courier_name || '').toLowerCase();
+            const tracking = (o.tracking_number || '').toLowerCase();
+            const addr = o.delivery_address ? `${o.delivery_address.label} ${o.delivery_address.street} ${o.delivery_address.city}`.toLowerCase() : '';
+            return idStr.includes(searchTerm) ||
+                   custName.includes(searchTerm) ||
+                   custPhone.includes(searchTerm) ||
+                   courier.includes(searchTerm) ||
+                   tracking.includes(searchTerm) ||
+                   addr.includes(searchTerm);
+        });
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center" style="color:var(--text-muted); padding: 3rem 1rem;">
+                    <i class="fa-solid fa-truck" style="font-size: 2.5rem; color: var(--border-color); margin-bottom: 0.75rem; display:block;"></i>
+                    No delivery orders found${deliveryStatusFilter !== 'all' ? ` matching status "${deliveryStatusFilter}"` : ''}.
+                    <br>
+                    <a href="#" onclick="openCreateDeliveryOrder(); return false;" style="margin-top: 0.5rem; display: inline-block;">Create a new delivery order</a>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    filtered.forEach(o => {
+        const tr = document.createElement('tr');
+
+        // Status Badge
+        let statusBadge = '';
+        if (o.status === 'pending') {
+            statusBadge = `<span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> Pending</span>`;
+        } else if (o.status === 'dispatched') {
+            statusBadge = `<span class="status-badge badge-dispatched"><i class="fa-solid fa-truck-fast"></i> Dispatched</span>`;
+        } else if (o.status === 'delivered') {
+            statusBadge = `<span class="status-badge badge-delivered"><i class="fa-solid fa-circle-check"></i> Delivered</span>`;
+        } else {
+            statusBadge = `<span class="status-badge">${escapeHtml(o.status)}</span>`;
+        }
+
+        // Method & Courier info
+        const methodHtml = o.transport_method === 'own_rider'
+            ? `<span style="font-weight: 500;"><i class="fa-solid fa-motorcycle" style="color:var(--primary); margin-right:4px;"></i> Own Rider</span>`
+            : `<span style="font-weight: 500;"><i class="fa-solid fa-truck-fast" style="color:var(--info); margin-right:4px;"></i> Courier</span>`;
+
+        const courierHtml = o.transport_method === 'courier'
+            ? `<strong>${escapeHtml(o.courier_name || '-')}</strong><div style="font-size: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> ${escapeHtml(o.tracking_number || '-')}</div>`
+            : `<span style="color:var(--text-muted); font-size: 0.85rem;">—</span>`;
+
+        // Address info
+        const addr = o.delivery_address;
+        const addrHtml = addr
+            ? `<div style="font-size: 0.875rem;"><strong>${escapeHtml(addr.label)}:</strong> ${escapeHtml(addr.street)}, ${escapeHtml(addr.city)}</div>`
+            : `<span style="color:var(--text-muted);">No address recorded</span>`;
+
+        // Customer info
+        const custName = o.customer ? escapeHtml(o.customer.name) : 'Unknown Customer';
+        const custPhone = o.customer?.phone ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(o.customer.phone)}</div>` : '';
+
+        // Date
+        const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+
+        tr.innerHTML = `
+            <td><strong style="color: var(--primary);">#DO-${o.id}</strong></td>
+            <td>
+                <div style="font-weight: 600;">${custName}</div>
+                ${custPhone}
+            </td>
+            <td>${addrHtml}</td>
+            <td>${methodHtml}</td>
+            <td>${courierHtml}</td>
+            <td>${statusBadge}</td>
+            <td><small style="color: var(--text-muted);">${dateStr}</small></td>
+            <td style="text-align: right; white-space: nowrap;">
+                <button class="btn-icon" onclick="viewDeliveryOrderSummary(${o.id})" title="View Details">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+                <button class="btn-icon delete" onclick="deleteDeliveryOrder(${o.id})" title="Delete Order">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openCreateDeliveryOrder() {
+    // Populate customer dropdown
+    const custSelect = document.getElementById('do-customer');
+    if (!custSelect) return;
+    custSelect.innerHTML = '<option value="">Select Customer...</option>';
+    if (customers.length === 0) {
+        custSelect.innerHTML += '<option value="" disabled>No customers found. Please add a customer first.</option>';
+    } else {
+        customers.forEach(c => {
+            custSelect.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.phone)})</option>`;
+        });
+    }
+
+    // Reset Address dropdown & hint
+    const addrSelect = document.getElementById('do-address');
+    addrSelect.innerHTML = '<option value="">Select Customer first...</option>';
+    document.getElementById('do-no-address-hint').style.display = 'none';
+
+    // Reset transport method
+    const ownRiderRadio = document.querySelector('input[name="do_transport_method"][value="own_rider"]');
+    if (ownRiderRadio) ownRiderRadio.checked = true;
+    toggleTransportMethod('own_rider');
+
+    // Reset items container and add 1 default row
+    const itemsContainer = document.getElementById('do-items-container');
+    itemsContainer.innerHTML = '';
+    addDeliveryItemRow();
+
+    // Reset notes
+    document.getElementById('do-notes').value = '';
+
+    openModal('delivery-order-modal');
+}
+
+async function onDeliveryCustomerChange() {
+    const custId = document.getElementById('do-customer').value;
+    const addrSelect = document.getElementById('do-address');
+    const hint = document.getElementById('do-no-address-hint');
+
+    if (!custId) {
+        addrSelect.innerHTML = '<option value="">Select Customer first...</option>';
+        hint.style.display = 'none';
+        return;
+    }
+
+    addrSelect.innerHTML = '<option value="">Loading addresses...</option>';
+
+    try {
+        const res = await fetch(`${API_URL}/customer-addresses?customer_id=${custId}`);
+        const addresses = await res.json();
+
+        if (!addresses || addresses.length === 0) {
+            addrSelect.innerHTML = '<option value="">No addresses found</option>';
+            hint.style.display = 'block';
+            return;
+        }
+
+        hint.style.display = 'none';
+        addrSelect.innerHTML = '<option value="">Select Delivery Address...</option>';
+        let defaultAddrId = null;
+
+        addresses.forEach(a => {
+            const isDef = !!a.is_default;
+            if (isDef) defaultAddrId = a.id;
+            addrSelect.innerHTML += `<option value="${a.id}">${escapeHtml(a.label)} — ${escapeHtml(a.street)}, ${escapeHtml(a.city)}${isDef ? ' (Default)' : ''}</option>`;
+        });
+
+        // Pre-select default address or first address
+        if (defaultAddrId) {
+            addrSelect.value = defaultAddrId;
+        } else if (addresses.length > 0) {
+            addrSelect.value = addresses[0].id;
+        }
+    } catch (err) {
+        addrSelect.innerHTML = '<option value="">Error loading addresses</option>';
+        showToast('Could not load customer addresses.', 'danger');
+    }
+}
+
+function addDeliveryItemRow(desc = '', qty = 1) {
+    const container = document.getElementById('do-items-container');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'delivery-item-row';
+    row.innerHTML = `
+        <input type="text" class="form-control do-item-desc" placeholder="Item description e.g. Wireless Mouse" value="${escapeHtml(desc)}" required>
+        <input type="number" min="1" class="form-control do-item-qty" placeholder="Qty" value="${qty}" required>
+        <button type="button" class="btn-icon delete" onclick="removeDeliveryItemRow(this)" title="Remove item">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(row);
+}
+
+function removeDeliveryItemRow(btn) {
+    const container = document.getElementById('do-items-container');
+    const rows = container.querySelectorAll('.delivery-item-row');
+    if (rows.length <= 1) {
+        // If only 1 row left, don't remove, just clear
+        const row = rows[0];
+        row.querySelector('.do-item-desc').value = '';
+        row.querySelector('.do-item-qty').value = 1;
+        return;
+    }
+    btn.closest('.delivery-item-row').remove();
+}
+
+function toggleTransportMethod(method) {
+    const courierFields = document.getElementById('do-courier-fields');
+    const courierName = document.getElementById('do-courier-name');
+    const trackingNum = document.getElementById('do-tracking-number');
+
+    if (method === 'courier') {
+        courierFields.style.display = 'grid';
+        courierName.required = true;
+        trackingNum.required = true;
+    } else {
+        courierFields.style.display = 'none';
+        courierName.required = false;
+        trackingNum.required = false;
+        courierName.value = '';
+        trackingNum.value = '';
+    }
+}
+
+async function saveDeliveryOrder(e) {
+    e.preventDefault();
+
+    const customerId = document.getElementById('do-customer').value;
+    const addressId = document.getElementById('do-address').value;
+    const transportMethod = document.querySelector('input[name="do_transport_method"]:checked')?.value || 'own_rider';
+    const courierName = document.getElementById('do-courier-name').value.trim();
+    const trackingNumber = document.getElementById('do-tracking-number').value.trim();
+    const notes = document.getElementById('do-notes').value.trim();
+
+    if (!addressId) {
+        showToast('Please select a valid delivery address.', 'danger');
+        return;
+    }
+
+    // Collect items
+    const rows = document.querySelectorAll('#do-items-container .delivery-item-row');
+    const items = [];
+    rows.forEach(r => {
+        const desc = r.querySelector('.do-item-desc').value.trim();
+        const qty = parseInt(r.querySelector('.do-item-qty').value) || 0;
+        if (desc && qty > 0) {
+            items.push({ description: desc, quantity: qty });
+        }
+    });
+
+    if (items.length === 0) {
+        showToast('Please add at least one valid item with a quantity greater than 0.', 'danger');
+        return;
+    }
+
+    const payload = {
+        customer_id: parseInt(customerId),
+        delivery_address_id: parseInt(addressId),
+        transport_method: transportMethod,
+        items: items,
+        notes: notes || null
+    };
+
+    if (transportMethod === 'courier') {
+        if (!courierName || !trackingNumber) {
+            showToast('Courier Name and Tracking Number are required for courier transport.', 'danger');
+            return;
+        }
+        payload.courier_name = courierName;
+        payload.tracking_number = trackingNumber;
+    }
+
+    try {
+        await apiCall('delivery-orders', 'POST', payload);
+        showToast('Delivery order created successfully!', 'success');
+        closeModal('delivery-order-modal');
+        await fetchData();
+        renderAll();
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
+async function viewDeliveryOrderSummary(orderId) {
+    const order = deliveryOrders.find(o => o.id == orderId);
+    if (!order) return;
+
+    document.getElementById('dos-order-title').textContent = `Delivery Order #DO-${order.id}`;
+
+    let statusBadge = '';
+    if (order.status === 'pending') {
+        statusBadge = `<span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> Pending</span>`;
+    } else if (order.status === 'dispatched') {
+        statusBadge = `<span class="status-badge badge-dispatched"><i class="fa-solid fa-truck-fast"></i> Dispatched</span>`;
+    } else if (order.status === 'delivered') {
+        statusBadge = `<span class="status-badge badge-delivered"><i class="fa-solid fa-circle-check"></i> Delivered</span>`;
+    } else {
+        statusBadge = `<span class="status-badge">${escapeHtml(order.status)}</span>`;
+    }
+
+    const cust = order.customer;
+    const addr = order.delivery_address;
+    const dateStr = order.created_at ? new Date(order.created_at).toLocaleString() : '-';
+
+    let itemsRowsHtml = '';
+    if (Array.isArray(order.items) && order.items.length > 0) {
+        order.items.forEach((it, idx) => {
+            itemsRowsHtml += `
+                <tr>
+                    <td style="padding: 0.5rem; text-align: center; color: var(--text-muted);">${idx + 1}</td>
+                    <td style="padding: 0.5rem;">${escapeHtml(it.description)}</td>
+                    <td style="padding: 0.5rem; text-align: center;"><strong>${escapeHtml(String(it.quantity))}</strong></td>
+                </tr>
+            `;
+        });
+    } else {
+        itemsRowsHtml = '<tr><td colspan="3" class="text-center" style="padding: 1rem; color: var(--text-muted);">No items recorded</td></tr>';
+    }
+
+    const methodDisplay = order.transport_method === 'own_rider'
+        ? '<i class="fa-solid fa-motorcycle" style="color:var(--primary);"></i> Own Rider'
+        : `<i class="fa-solid fa-truck-fast" style="color:var(--info);"></i> Courier: <strong>${escapeHtml(order.courier_name || '')}</strong> (Tracking: <code>${escapeHtml(order.tracking_number || '')}</code>)`;
+
+    const content = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem;">
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Created on ${dateStr}</span>
+            </div>
+            <div>${statusBadge}</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div style="background: var(--bg-main); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">
+                    <i class="fa-solid fa-user"></i> Customer
+                </div>
+                <strong>${cust ? escapeHtml(cust.name) : 'Unknown'}</strong>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                    ${cust?.phone ? `<div><i class="fa-solid fa-phone" style="font-size: 0.75rem;"></i> ${escapeHtml(cust.phone)}</div>` : ''}
+                    ${cust?.email ? `<div><i class="fa-solid fa-envelope" style="font-size: 0.75rem;"></i> ${escapeHtml(cust.email)}</div>` : ''}
+                </div>
+            </div>
+
+            <div style="background: var(--bg-main); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">
+                    <i class="fa-solid fa-location-dot"></i> Delivery Address
+                </div>
+                ${addr ? `
+                    <strong>${escapeHtml(addr.label)}</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                        ${escapeHtml(addr.street)}<br>
+                        ${escapeHtml(addr.city)}
+                    </div>
+                ` : '<div style="color:var(--text-muted); font-size: 0.85rem;">No address recorded</div>'}
+            </div>
+        </div>
+
+        <div style="background: var(--bg-main); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">
+                <i class="fa-solid fa-truck"></i> Transport Method
+            </div>
+            <div>${methodDisplay}</div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Items (${Array.isArray(order.items) ? order.items.length : 0})</div>
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--bg-main); border-bottom: 1px solid var(--border-color);">
+                        <th style="width: 40px; padding: 0.5rem; text-align: center;">#</th>
+                        <th style="padding: 0.5rem;">Description</th>
+                        <th style="width: 80px; padding: 0.5rem; text-align: center;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsRowsHtml}
+                </tbody>
+            </table>
+        </div>
+
+        ${order.notes ? `
+            <div style="background: var(--bg-main); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">
+                    <i class="fa-solid fa-note-sticky"></i> Notes
+                </div>
+                <div style="font-size: 0.875rem;">${escapeHtml(order.notes)}</div>
+            </div>
+        ` : ''}
+    `;
+
+    document.getElementById('dos-content').innerHTML = content;
+    openModal('delivery-summary-modal');
+}
+
+async function deleteDeliveryOrder(orderId) {
+    if (confirm('Are you sure you want to delete this delivery order?')) {
+        try {
+            await apiCall(`delivery-orders/${orderId}`, 'DELETE');
+            showToast('Delivery order deleted.', 'success');
+            await fetchData();
+            renderAll();
+        } catch (err) {
+            showToast(err.message || 'Error deleting delivery order.', 'danger');
+        }
+    }
+}
+
