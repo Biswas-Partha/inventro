@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
-import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
+import { TopHeader } from './components/TopHeader';
 import { ToastContainer } from './components/ToastContainer';
 import { PosCartDrawer } from './components/PosCartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -30,20 +31,26 @@ export const App = () => {
 
   return (
     <div className="app-layout">
-      {/* Top Navbar */}
-      <Navbar />
+      {/* Left Vertical Sidebar */}
+      <Sidebar />
 
-      {/* Main Viewport */}
-      <main className="main-viewport">
-        {activeView === 'workspace' && <WorkspaceView />}
-        {activeView === 'products' && <ProductsView />}
-        {activeView === 'categories' && <CategoriesView />}
-        {activeView === 'suppliers' && <SuppliersView />}
-        {activeView === 'customers' && <CustomersView />}
-        {activeView === 'deliveries' && <DeliveriesView />}
-        {activeView === 'stock' && <StockManagementView />}
-        {activeView === 'reports' && <ReportsView />}
-      </main>
+      {/* Main Content Area */}
+      <div className="app-main-content">
+        {/* Top Header */}
+        <TopHeader />
+
+        {/* Viewport */}
+        <main className="main-viewport">
+          {activeView === 'workspace' && <WorkspaceView />}
+          {activeView === 'products' && <ProductsView />}
+          {activeView === 'categories' && <CategoriesView />}
+          {activeView === 'suppliers' && <SuppliersView />}
+          {activeView === 'customers' && <CustomersView />}
+          {activeView === 'deliveries' && <DeliveriesView />}
+          {activeView === 'stock' && <StockManagementView />}
+          {activeView === 'reports' && <ReportsView />}
+        </main>
+      </div>
 
       {/* POS Cart Drawer */}
       <PosCartDrawer onOpenCheckout={() => setIsCheckoutOpen(true)} />
