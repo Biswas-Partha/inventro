@@ -24,7 +24,19 @@ export const AppProvider = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem('inventro_theme') || 'dark');
-  const [currency, setCurrency] = useState(() => localStorage.getItem('inventro_currency') || 'PKR ');
+  const [currency, setCurrencyState] = useState(() => {
+    const saved = localStorage.getItem('inventro_currency');
+    if (!saved || saved.trim() === 'PKR') {
+      localStorage.setItem('inventro_currency', 'Rs. ');
+      return 'Rs. ';
+    }
+    return saved;
+  });
+
+  const setCurrency = (newCurr) => {
+    localStorage.setItem('inventro_currency', newCurr);
+    setCurrencyState(newCurr);
+  };
   const [toasts, setToasts] = useState([]);
 
   // Toast notifications helper
