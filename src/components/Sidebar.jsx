@@ -12,7 +12,6 @@ import {
   BarChart3,
   Sun,
   Moon,
-  RefreshCw,
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -21,8 +20,6 @@ export const Sidebar = () => {
     setActiveView,
     theme,
     toggleTheme,
-    refreshAll,
-    loading,
   } = useApp();
 
   const navItems = [
@@ -45,7 +42,7 @@ export const Sidebar = () => {
         </div>
         <div className="brand-text">
           <span className="brand-name">Inventro</span>
-          <span className="brand-badge">PORT 8001</span>
+          <span className="brand-subtitle">Inventory & Logistics</span>
         </div>
       </div>
 
@@ -71,33 +68,14 @@ export const Sidebar = () => {
 
       {/* Sidebar Footer */}
       <div className="sidebar-footer">
-        <div className="sidebar-footer-tools">
-          {/* Refresh Data */}
-          <button
-            onClick={refreshAll}
-            disabled={loading}
-            className="sidebar-tool-btn"
-            title="Refresh Server Data"
-          >
-            <RefreshCw size={16} className={loading ? 'spin' : ''} />
-            <span>Sync API</span>
-          </button>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="sidebar-tool-btn"
-            title="Toggle Light/Dark Theme"
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
-          </button>
-        </div>
-
-        <div className="sidebar-status-box">
-          <div className="status-dot"></div>
-          <span>Laravel API: Online</span>
-        </div>
+        <button
+          onClick={toggleTheme}
+          className="sidebar-theme-toggle"
+          title="Toggle Light/Dark Theme"
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+        </button>
       </div>
     </aside>
   );

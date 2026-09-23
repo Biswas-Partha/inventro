@@ -153,6 +153,14 @@ body.light-theme ::-webkit-scrollbar-thumb {
   margin-top: 2px;
 }
 
+.brand-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+
 /* Nav Menu */
 .sidebar-nav {
   flex: 1;
@@ -218,6 +226,29 @@ body.light-theme ::-webkit-scrollbar-thumb {
   flex-direction: column;
   gap: 12px;
   background: var(--bg-card);
+}
+
+.sidebar-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-theme-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border-color: var(--primary);
 }
 
 .sidebar-footer-tools {
